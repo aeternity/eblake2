@@ -17,6 +17,13 @@ blake2b_test_() ->
 blake2b(_TC = #{in := Msg, key := Key, out := ExpectedOut}) ->
     ?assertEqual(eblake2:blake2b(byte_size(ExpectedOut), Msg, Key), {ok, ExpectedOut}).
 
+blake2s_test_() ->
+    {"Tests for BLAKE2s hash implementation",
+     [ fun() -> blake2s(TC) end || TC <- filter_test_vectors(<<"blake2s">>) ]}.
+
+blake2s(_TC = #{in := Msg, key := Key, out := ExpectedOut}) ->
+    ?assertEqual(eblake2:blake2s(byte_size(ExpectedOut), Msg, Key), {ok, ExpectedOut}).
+
 %% Helper functions
 test_vectors() ->
     parse_test_vectors("test/blake2_testvectors.json").
