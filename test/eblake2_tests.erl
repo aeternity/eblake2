@@ -24,6 +24,18 @@ blake2s_test_() ->
 blake2s(_TC = #{in := Msg, key := Key, out := ExpectedOut}) ->
     ?assertEqual(eblake2:blake2s(byte_size(ExpectedOut), Msg, Key), {ok, ExpectedOut}).
 
+
+random_test_() ->
+    {generator, fun() ->
+      [ {lists:concat(["Random test ", I]), fun() -> random_test(I) end} || I <- lists:seq(1, 50) ]
+    end}.
+
+random_test(I) ->
+    Data = crypto:strong_rand_bytes(I * 50),
+    {ok, Enacl}  = enacl:generichash(64, Data),
+    {ok, Eblake} = eblake2:blake2b(64, Data),
+
+    ?assertEqual(Eblake, Enacl).
 %% Helper functions
 test_vectors() ->
     parse_test_vectors("test/blake2_testvectors.json").
