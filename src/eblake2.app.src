@@ -1,6 +1,6 @@
 {application, eblake2,
  [{description, "A pure Erlang Blake2 implementation"},
-  {vsn, "0.1.0"},
+  {vsn, "1.0.0"},
   {registered, []},
   {applications,
    [kernel,
@@ -8,8 +8,7 @@
    ]},
   {env,[]},
   {modules, []},
-
-  {maintainers, []},
-  {licenses, ["Apache 2.0"]},
-  {links, []}
+  {maintainers, ["Hans Svensson"]},
+  {licenses, ["ISC"]},
+  {links, [{"Github", "https://github.com/aeternity/enoise"}]}
  ]}.
