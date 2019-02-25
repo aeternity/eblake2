@@ -104,19 +104,17 @@ blake2b_mix(Rnd, Chunk, V) ->
     <<M0:64, M1:64, M2:64, M3:64, M4:64, M5:64, M6:64, M7:64, M8:64,
       M9:64, M10:64, M11:64, M12:64, M13:64, M14:64, M15:64>> = Chunk,
     Ms = {M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15},
-    M = fun(Ix) -> element(Ix+1, Ms) end,
+    {S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15} = sigma(Rnd rem 10, Ms),
 
-    [S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15] = sigma(Rnd rem 10),
+    {Vx0, Vx4, Vx8,  Vx12} = blake2b_mix(V0, V4, V8,  V12, S0, S1),
+    {Vx1, Vx5, Vx9,  Vx13} = blake2b_mix(V1, V5, V9,  V13, S2, S3),
+    {Vx2, Vx6, Vx10, Vx14} = blake2b_mix(V2, V6, V10, V14, S4, S5),
+    {Vx3, Vx7, Vx11, Vx15} = blake2b_mix(V3, V7, V11, V15, S6, S7),
 
-    {Vx0, Vx4, Vx8,  Vx12} = blake2b_mix(V0, V4, V8,  V12, M(S0), M(S1)),
-    {Vx1, Vx5, Vx9,  Vx13} = blake2b_mix(V1, V5, V9,  V13, M(S2), M(S3)),
-    {Vx2, Vx6, Vx10, Vx14} = blake2b_mix(V2, V6, V10, V14, M(S4), M(S5)),
-    {Vx3, Vx7, Vx11, Vx15} = blake2b_mix(V3, V7, V11, V15, M(S6), M(S7)),
-
-    {Vy0, Vy5, Vy10, Vy15} = blake2b_mix(Vx0, Vx5, Vx10, Vx15, M(S8),  M(S9)),
-    {Vy1, Vy6, Vy11, Vy12} = blake2b_mix(Vx1, Vx6, Vx11, Vx12, M(S10), M(S11)),
-    {Vy2, Vy7, Vy8,  Vy13} = blake2b_mix(Vx2, Vx7, Vx8,  Vx13, M(S12), M(S13)),
-    {Vy3, Vy4, Vy9,  Vy14} = blake2b_mix(Vx3, Vx4, Vx9,  Vx14, M(S14), M(S15)),
+    {Vy0, Vy5, Vy10, Vy15} = blake2b_mix(Vx0, Vx5, Vx10, Vx15, S8,  S9),
+    {Vy1, Vy6, Vy11, Vy12} = blake2b_mix(Vx1, Vx6, Vx11, Vx12, S10, S11),
+    {Vy2, Vy7, Vy8,  Vy13} = blake2b_mix(Vx2, Vx7, Vx8,  Vx13, S12, S13),
+    {Vy3, Vy4, Vy9,  Vy14} = blake2b_mix(Vx3, Vx4, Vx9,  Vx14, S14, S15),
 
     <<Vy0:64, Vy1:64, Vy2:64, Vy3:64, Vy4:64, Vy5:64, Vy6:64, Vy7:64, Vy8:64,
       Vy9:64, Vy10:64, Vy11:64, Vy12:64, Vy13:64, Vy14:64, Vy15:64>>.
@@ -147,20 +145,26 @@ blake2b_iv() ->
     IV7 = 16#5BE0CD19137E2179,
     <<IV0:64, IV1:64, IV2:64, IV3:64, IV4:64, IV5:64, IV6:64, IV7:64>>.
 
-sigma(N) ->
-    {_, Row} = lists:keyfind(N, 1, sigma()), Row.
-
-sigma() ->
-    [{0, [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]},
-     {1, [14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3]},
-     {2, [11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4]},
-     {3, [ 7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8]},
-     {4, [ 9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13]},
-     {5, [ 2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9]},
-     {6, [12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11]},
-     {7, [13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10]},
-     {8, [ 6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5]},
-     {9, [10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13,  0]}].
+sigma(0, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    { E0,  E1,  E2,  E3,  E4,  E5,  E6,  E7,  E8,  E9, E10, E11, E12, E13, E14, E15};
+sigma(1, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    {E14, E10,  E4,  E8,  E9, E15, E13,  E6,  E1, E12,  E0,  E2, E11,  E7,  E5,  E3};
+sigma(2, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    {E11,  E8, E12,  E0,  E5,  E2, E15, E13, E10, E14,  E3,  E6,  E7,  E1,  E9,  E4};
+sigma(3, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    { E7,  E9,  E3,  E1, E13, E12, E11, E14,  E2,  E6,  E5, E10,  E4,  E0, E15,  E8};
+sigma(4, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    { E9,  E0,  E5,  E7,  E2,  E4, E10, E15, E14,  E1, E11, E12,  E6,  E8,  E3, E13};
+sigma(5, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    { E2, E12,  E6, E10,  E0, E11,  E8,  E3,  E4, E13,  E7,  E5, E15, E14,  E1,  E9};
+sigma(6, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    {E12,  E5,  E1, E15, E14, E13,  E4, E10,  E0,  E7,  E6,  E3,  E9,  E2,  E8, E11};
+sigma(7, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    {E13, E11,  E7, E14, E12,  E1,  E3,  E9,  E5,  E0, E15,  E4,  E8,  E6,  E2, E10};
+sigma(8, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    { E6, E15, E14,  E9, E11,  E3,  E0,  E8, E12,  E2, E13,  E7,  E1,  E4, E10,  E5};
+sigma(9, {E0, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10, E11, E12, E13, E14, E15}) ->
+    {E10,  E2,  E8,  E4,  E7,  E6,  E1,  E5, E15, E11,  E9, E14,  E3, E12, E13,  E0}.
 
 rotr64(N, I64) ->
     <<I64rot:64>> = rotr641(N, <<I64:64>>),
@@ -211,19 +215,20 @@ blake2s_mix(Rnd, Chunk, V) ->
     <<M0:32, M1:32, M2:32, M3:32, M4:32, M5:32, M6:32, M7:32, M8:32,
       M9:32, M10:32, M11:32, M12:32, M13:32, M14:32, M15:32>> = Chunk,
     Ms = {M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13, M14, M15},
-    M = fun(Ix) -> element(Ix+1, Ms) end,
 
-    [S0, S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11, S12, S13, S14, S15] = sigma(Rnd rem 10),
+    {S0, S1, S2, S3, S4, S5, S6, S7,
+     S8, S9, S10, S11, S12, S13, S14, S15} = sigma(Rnd rem 10, Ms),
 
-    {Vx0, Vx4, Vx8,  Vx12} = blake2s_mix(V0, V4, V8,  V12, M(S0), M(S1)),
-    {Vx1, Vx5, Vx9,  Vx13} = blake2s_mix(V1, V5, V9,  V13, M(S2), M(S3)),
-    {Vx2, Vx6, Vx10, Vx14} = blake2s_mix(V2, V6, V10, V14, M(S4), M(S5)),
-    {Vx3, Vx7, Vx11, Vx15} = blake2s_mix(V3, V7, V11, V15, M(S6), M(S7)),
+    {Vx0, Vx4, Vx8,  Vx12} = blake2s_mix(V0, V4, V8,  V12, S0, S1),
+    {Vx1, Vx5, Vx9,  Vx13} = blake2s_mix(V1, V5, V9,  V13, S2, S3),
+    {Vx2, Vx6, Vx10, Vx14} = blake2s_mix(V2, V6, V10, V14, S4, S5),
+    {Vx3, Vx7, Vx11, Vx15} = blake2s_mix(V3, V7, V11, V15, S6, S7),
 
-    {Vy0, Vy5, Vy10, Vy15} = blake2s_mix(Vx0, Vx5, Vx10, Vx15, M(S8),  M(S9)),
-    {Vy1, Vy6, Vy11, Vy12} = blake2s_mix(Vx1, Vx6, Vx11, Vx12, M(S10), M(S11)),
-    {Vy2, Vy7, Vy8,  Vy13} = blake2s_mix(Vx2, Vx7, Vx8,  Vx13, M(S12), M(S13)),
-    {Vy3, Vy4, Vy9,  Vy14} = blake2s_mix(Vx3, Vx4, Vx9,  Vx14, M(S14), M(S15)),
+    {Vy0, Vy5, Vy10, Vy15} = blake2s_mix(Vx0, Vx5, Vx10, Vx15, S8,  S9),
+    {Vy1, Vy6, Vy11, Vy12} = blake2s_mix(Vx1, Vx6, Vx11, Vx12, S10, S11),
+    {Vy2, Vy7, Vy8,  Vy13} = blake2s_mix(Vx2, Vx7, Vx8,  Vx13, S12, S13),
+    {Vy3, Vy4, Vy9,  Vy14} = blake2s_mix(Vx3, Vx4, Vx9,  Vx14, S14, S15),
+
 
     <<Vy0:32, Vy1:32, Vy2:32, Vy3:32, Vy4:32, Vy5:32, Vy6:32, Vy7:32, Vy8:32,
       Vy9:32, Vy10:32, Vy11:32, Vy12:32, Vy13:32, Vy14:32, Vy15:32>>.
