@@ -11,6 +11,7 @@
         , blake2b/3
         , blake2s/2
         , blake2s/3
+        , hmac/3
         ]).
 
 -define(MAXINT_32, 16#FFFFffff).
@@ -58,6 +59,12 @@ blake2s(HashLen, Msg0, Key) ->
 
     %% Just return the requested part of the hash
     {ok, binary_part(to_little_endian(32, State), {0, HashLen})}.
+
+-spec hmac(Hash :: blake2b | blake2s, Key :: binary(), Data :: binary()) -> {ok, binary()}.
+hmac(blake2b, Key, Data) ->
+    hmac(128, fun(D) -> {ok, H} = blake2b(64, D), H end, Key, Data);
+hmac(blake2s, Key, Data) ->
+    hmac(64, fun(D) -> {ok, H} = blake2s(32, D), H end, Key, Data).
 
 
 %%====================================================================
@@ -262,4 +269,30 @@ to_little_endian(_X, <<>>, Acc) -> Acc;
 to_little_endian(X, Bin, Acc) ->
     <<UIntX:X/big-unsigned-integer, Rest/binary>> = Bin,
     to_little_endian(X, Rest, <<Acc/binary, UIntX:X/little-unsigned-integer>>).
+
+%% HMAC
+hmac(BLen, HFun, Key, Data) ->
+    Block1 = hmac_format_key(HFun, Key, 16#36, BLen),
+    Hash1 = HFun(<<Block1/binary, Data/binary>>),
+    Block2 = hmac_format_key(HFun, Key, 16#5C, BLen),
+    HFun(<<Block2/binary, Hash1/binary>>).
+
+hmac_format_key(HFun, Key0, Pad, BLen) ->
+    Key1 =
+        case byte_size(Key0) =< BLen of
+            true  -> Key0;
+            false -> HFun(Key0)
+        end,
+    Key2 = pad(Key1, BLen, 0),
+    <<PadWord:32>> = <<Pad:8, Pad:8, Pad:8, Pad:8>>,
+    << <<(Word bxor PadWord):32>> || <<Word:32>> <= Key2 >>.
+
+pad(Data, MinSize, PadByte) ->
+    case byte_size(Data) of
+        N when N >= MinSize ->
+            Data;
+        N ->
+            PadData = << <<PadByte:8>> || _ <- lists:seq(1, MinSize - N) >>,
+            <<Data/binary, PadData/binary>>
+    end.
 
