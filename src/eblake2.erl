@@ -60,7 +60,7 @@ blake2s(HashLen, Msg0, Key) ->
     %% Just return the requested part of the hash
     {ok, binary_part(to_little_endian(32, State), {0, HashLen})}.
 
--spec hmac(Hash :: blake2b | blake2s, Key :: binary(), Data :: binary()) -> {ok, binary()}.
+-spec hmac(Hash :: blake2b | blake2s, Key :: binary(), Data :: binary()) -> binary().
 hmac(blake2b, Key, Data) ->
     hmac(128, fun(D) -> {ok, H} = blake2b(64, D), H end, Key, Data);
 hmac(blake2s, Key, Data) ->
