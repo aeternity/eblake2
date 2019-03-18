@@ -10,5 +10,5 @@
   {modules, []},
   {maintainers, ["Hans Svensson"]},
   {licenses, ["ISC"]},
-  {links, [{"Github", "https://github.com/aeternity/enoise"}]}
+  {links, [{"Github", "https://github.com/aeternity/eblake2"}]}
  ]}.
